@@ -17,7 +17,7 @@ public class FindMinCost {
     static int[] ss, qs;
 
     // Class that represents edge in given adjancency list
-    class Edge {
+      public static class Edge {
         // v,w (two vertices that represent the edge)
         private final int v;
         private final int w;
@@ -49,7 +49,7 @@ public class FindMinCost {
         }
     }
 
-    class Bag<Item> implements Iterable<Item> {
+   static class Bag<Item> implements Iterable<Item> {
         // storing items in bag in LinkedList
         private LinkedList<Item> items = new LinkedList<Item>();
 
@@ -77,12 +77,13 @@ public class FindMinCost {
     // create Graph Class that stores
     // V: number of vertices (#of towers?)
     //
-    class EdgeWeightedGraph {
+    public static class EdgeWeightedGraph {
         private final int V; // Number of vertices
         private Bag<Edge>[]adj; // adjancency list
+        // Number of edges
         private int E;
 
-        // Constructor to
+        // Constructor to create adjacency list with given number of vertices
         public EdgeWeightedGraph(int V) {
             this.V = V;
             adj = (Bag<Edge>[]) new Bag[V];
@@ -92,20 +93,49 @@ public class FindMinCost {
         }
 
         public void addEdge(Edge e) {
+            // retrieve endpoints from given edge 'e'
             int v = e.either();
             int w = e.other(v);
+            // Add edge to adjacency list
             adj[v].add(e);
+            //undirected must be added to both vertices
             adj[w].add(e);
+            // increment Edge count (not sure if necessary)
             E++;
         }
 
-        public Iterable<Edge> edges() {
+        public Iterable<Edge> edge() {
             return adj[V];
         }
 
         public int V() {
             return V;
         }
+
+        //Method to collect and return all edges in the graph:
+        public Iterable<Edge> edges() {
+            Bag<Edge> items = new Bag<Edge>();
+            // iterate through each vertex
+            for (int v = 0; v < V; v++) {
+                // iterate through each edge
+                for (Edge e: adj[v]) {
+                    // check to avoid adding duplicate edges
+                    if (e.other(v) > v) {
+                        items.add(e);
+                    }
+                }
+            }
+            return items;
+        }
+
+        // Member function to calculate Euclidean distance between two points
+        // Tower A: (x1,y1)
+        // Tower B: (x2,y2)
+        public static double calculateDistance(int x1, int y1, int x2, int y2) {
+            // sqrt((x1-y1)^2 + (x2-y2)^2))
+            return Math.sqrt(Math.pow(x1 - x2, 2) + Math.pow(y1 - y2, 2));
+        }
+
 
 
     }
@@ -218,7 +248,22 @@ public class FindMinCost {
         compress(points);
         // call edge-Weighted Graph:
         // N -> number of points
-       // Graph g = new Graph(N);
+        EdgeWeightedGraph graph = new EdgeWeightedGraph(N);
+        // create nested for-loop to populate our adjacency list
+        // points[i][0] = x1
+        // points[i][1] = y1
+        // points[j][0] = x2
+        // points[j][1] = y2
+        for (int i = 0; i < N; i++) {
+            for (int j = i+1; j < N; j++) {
+                // calculating Euclidean distance between every pair of points (Towers)
+                double distance = EdgeWeightedGraph.calculateDistance(points[i][0], points[i][1],
+                        points[j][0], points[j][1]);
+                // populate our adjacency list with these found weights
+                graph.addEdge(new Edge(i, j, distance));
+            }
+        }
+
 
         long answer= 0;
         /* your code here to calculate the answer*/
