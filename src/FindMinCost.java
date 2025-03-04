@@ -16,38 +16,44 @@ public class FindMinCost {
     static int N; // size of thing
     static int[] ss, qs;
 
-    // Class that
+    // Class that represents edge in given adjancency list
     class Edge {
-        private int v;
-        private int w;
-        private double weight; // weight of each edge
+        // v,w (two vertices that represent the edge)
+        private final int v;
+        private final int w;
+        private final double weight; // weight of each edge
 
         public Edge(int v, int w, double weight) {
             this.v = v;
             this.w = w;
             this.weight = weight;
         }
-
+        //returns one of the vertices in the edge
         public int either() {
             return v;
         }
-
+        //returns the other vertex in the edge
+        // ex:
+        // Edge edge = new Edge(2,3,1.5)
         public int other(int vertex) {
+            // return other vertice in the edge
             if (vertex == v) return w;
+            // must be opposite case
             else if (vertex == w) return v;
+            //otherwise vertex is not valid
             else return -1;
         }
 
         public double weight() {
             return weight;
         }
-
-
     }
 
     class Bag<Item> implements Iterable<Item> {
+        // storing items in bag in LinkedList
         private LinkedList<Item> items = new LinkedList<Item>();
 
+        //Constructor to initialize LinkedList
         public Bag() {
             items = new LinkedList<>();
         }
@@ -58,7 +64,7 @@ public class FindMinCost {
         public boolean isEmpty() {
             return items.isEmpty();
         }
-
+        //getting number of items in bag
         public int size() {
             return items.size();
         }
@@ -72,10 +78,11 @@ public class FindMinCost {
     // V: number of vertices (#of towers?)
     //
     class EdgeWeightedGraph {
-        private int V; // Number of vertices
+        private final int V; // Number of vertices
         private Bag<Edge>[]adj; // adjancency list
         private int E;
 
+        // Constructor to
         public EdgeWeightedGraph(int V) {
             this.V = V;
             adj = (Bag<Edge>[]) new Bag[V];
@@ -90,6 +97,14 @@ public class FindMinCost {
             adj[v].add(e);
             adj[w].add(e);
             E++;
+        }
+
+        public Iterable<Edge> edges() {
+            return adj[V];
+        }
+
+        public int V() {
+            return V;
         }
 
 
