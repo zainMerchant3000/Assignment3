@@ -16,8 +16,26 @@ public class FindMinCost {
     static int N; // size of thing
     static int[] ss, qs;
 
+    // create member function that does binary search:
+    public static double findMinumumCost(EdgeWeightedGraph G) {
+        double low = 0;
+        // double high = 10^9 (but with point compression probably less?)
+        // while (low <= high) {
+        // double mid = low + (high - low) / 2;
+        // if (
+        //}
+        return 0.0;
+
+    }
+
+    public static boolean canCommunicate(EdgeWeightedGraph G, double R) {
+        // Implement Graph traversal (DFS or BFS to check tower communication)
+        // based on given radius R
+        return true;
+    }
+
     // Class that represents edge in given adjancency list
-      public static class Edge {
+    public static class Edge {
         // v,w (two vertices that represent the edge)
         private final int v;
         private final int w;
@@ -28,19 +46,21 @@ public class FindMinCost {
             this.w = w;
             this.weight = weight;
         }
+
         //returns one of the vertices in the edge
         public int either() {
             return v;
         }
+
         //returns the other vertex in the edge
         // ex:
         // Edge edge = new Edge(2,3,1.5)
         public int other(int vertex) {
             // return other vertice in the edge
             if (vertex == v) return w;
-            // must be opposite case
+                // must be opposite case
             else if (vertex == w) return v;
-            //otherwise vertex is not valid
+                //otherwise vertex is not valid
             else return -1;
         }
 
@@ -49,7 +69,7 @@ public class FindMinCost {
         }
     }
 
-   static class Bag<Item> implements Iterable<Item> {
+    static class Bag<Item> implements Iterable<Item> {
         // storing items in bag in LinkedList
         private LinkedList<Item> items = new LinkedList<Item>();
 
@@ -61,9 +81,11 @@ public class FindMinCost {
         public void add(Item item) {
             items.add(item);
         }
+
         public boolean isEmpty() {
             return items.isEmpty();
         }
+
         //getting number of items in bag
         public int size() {
             return items.size();
@@ -74,12 +96,13 @@ public class FindMinCost {
             return items.iterator();
         }
     }
+
     // create Graph Class that stores
     // V: number of vertices (#of towers?)
     //
     public static class EdgeWeightedGraph {
         private final int V; // Number of vertices
-        private Bag<Edge>[]adj; // adjancency list
+        private Bag<Edge>[] adj; // adjancency list
         // Number of edges
         private int E;
 
@@ -118,7 +141,7 @@ public class FindMinCost {
             // iterate through each vertex
             for (int v = 0; v < V; v++) {
                 // iterate through each edge
-                for (Edge e: adj[v]) {
+                for (Edge e : adj[v]) {
                     // check to avoid adding duplicate edges
                     if (e.other(v) > v) {
                         items.add(e);
@@ -135,7 +158,6 @@ public class FindMinCost {
             // sqrt((x1-y1)^2 + (x2-y2)^2))
             return Math.sqrt(Math.pow(x1 - x2, 2) + Math.pow(y1 - y2, 2));
         }
-
 
 
     }
@@ -158,7 +180,7 @@ public class FindMinCost {
         var m = new HashMap<Integer, Integer>();
         for (int i = 0; i < N; i++) {
             // (populate map with sorted x and y coordinates)
-            Integer previousValue =  m.put(qs[i], i);
+            Integer previousValue = m.put(qs[i], i);
             // //System.out.println("Inserted (" + qs[i] + ", " + i + "), previous value: " + previousValue);
         }
         return m;
@@ -235,43 +257,40 @@ public class FindMinCost {
         // ex) 5 -> tells us number of points
         N = Integer.parseInt(tokens[0]);
         // create 2D array points
-        var points = new int[N][N];
+        // components (if w inside coordinates):
+        //  x = low 4 bytes of w
+        //  y = high 4 bytes of w
+        var coordinates = new long[N];
         // k = 1 -> start at line 1 to process each pair of points
         // Integer.parseInt(tokens[k]) -> provides us value of points in given line
         for (int i = 0, k = 1; i < N; i++) {
-            for (int j = 0; j < 2; j++, k++) {
-                // points[0][0] = 0
-                // points[0][1] = 3
-                points[i][j] = Integer.parseInt(tokens[k]);
-            }
+            coordinates[i] = Integer.parseInt(tokens[k]) | ((long) Integer.parseInt(tokens[k + 1]) << 4);
         }
-        compress(points);
-        // call edge-Weighted Graph:
-        // N -> number of points
-        EdgeWeightedGraph graph = new EdgeWeightedGraph(N);
-        // create nested for-loop to populate our adjacency list
-        // points[i][0] = x1
-        // points[i][1] = y1
-        // points[j][0] = x2
-        // points[j][1] = y2
+        // indexing: row * N + column
+        // if w is an element of proximity:
+        //  squared distance: high 4 bytes
+        //  index of the other point: low 4 bytes
+        var proximity = new long[N * N];
         for (int i = 0; i < N; i++) {
-            for (int j = i+1; j < N; j++) {
-                // calculating Euclidean distance between every pair of points (Towers)
-                double distance = EdgeWeightedGraph.calculateDistance(points[i][0], points[i][1],
-                        points[j][0], points[j][1]);
-                // populate our adjacency list with these found weights
-                graph.addEdge(new Edge(i, j, distance));
+            long ixy = coordinates[i];
+            int ix = (int) ixy;
+            int iy = (int) (ixy >>> 4);
+            for (int j = 0; j < N; j++) {
+                long jxy = coordinates[j];
+                int jx = (int) jxy;
+                int jy = (int) (jxy >>> 4);
+                int ds = (jx - ix) * (jy - iy);
+                proximity[i * N + j] = ((long) ds << 4) + (long) j;
             }
+            // sort by distance and then index
+            Arrays.sort(proximity, i * N, (i + 1) * N);
         }
-
-
-        long answer= 0;
+        
+        // debug check: print out the proximity matrix to see if correctly sorts.
+        
+        long answer = 0;
         /* your code here to calculate the answer*/
 
         System.out.println(answer);
     }
-
-    /// Plan: need a method that calculates the distance between 2 towers
-    ///  Tower a, Tower b
-    ///  Math.sqrt((a.x - b.x)) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y));
-    }
+}
