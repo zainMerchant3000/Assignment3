@@ -262,32 +262,91 @@ public class FindMinCost {
         //  y = high 4 bytes of w
         var coordinates = new long[N];
         // k = 1 -> start at line 1 to process each pair of points
-        // Integer.parseInt(tokens[k]) -> provides us value of points in given line
+        // Integer.parseInt(tokens[k]) -> provides us value of points in given line (converts string to int)
+
         for (int i = 0, k = 1; i < N; i++) {
+            // tokens[k] -> refer to element k in tokens array
+            // ex) tokens[1] = 1 (x-coordinate of first point)
+            //     tokens[2] = 3 (y-coordinate of first point)
+
+
+
+            // Integer.parseInt(tokens[k+1]) -> converts token at index k+1 from string to int
+            // ((long) Integer.parseInt(tokens[k+1] -> cast to long
+            // << 4 : shifting 4 bits to the left
+            // equivalent to 2^4 = 16
+            //  ex)
+            // x = 1, y = 3
+           // System.out.println("tokens[k]: " + tokens[k]);
             coordinates[i] = Integer.parseInt(tokens[k]) | ((long) Integer.parseInt(tokens[k + 1]) << 4);
         }
+        System.out.println("Coordinates: " + Arrays.toString(coordinates));
+
+        for (int i = 0, k = 1; i < N; i++, k += 2) {
+            // retrieve x-coordinate
+            int x = Integer.parseInt(tokens[k]);
+            System.out.print("x: " + x + " ");
+            // retrieve y-coordinate
+            int y = Integer.parseInt(tokens[k + 1]);
+            System.out.println("y: " + y + " ");
+            // must do bit shift of 32 bytes to extract y-coordinate
+            // (x & 0xFFFFFFFFL)
+            // &: bitwise AND to compare two numbers
+            // 0xFFFFFFFFL -> hexadecimal literal representing 32-bit mask
+            // L -> indicates long integer
+            coordinates[i] = ((long) y << 32) | (x & 0xFFFFFFFFL);
+           // System.out.println("i: " + i + " x: " + x + " y: " + y);
+            //coordinates[i] = x | ((long) y << 4);
+        }
+        System.out.println();
+       // System.out.println("Coordinates: " + Arrays.toString(coordinates));
+
         // indexing: row * N + column
         // if w is an element of proximity:
         //  squared distance: high 4 bytes
         //  index of the other point: low 4 bytes
         var proximity = new long[N * N];
         for (int i = 0; i < N; i++) {
+            // retrieve the x,y values stored in our array of points
             long ixy = coordinates[i];
-            int ix = (int) ixy;
-            int iy = (int) (ixy >>> 4);
+            int ix = (int) (ixy & 0xFFFFFFFFL); // extract x-coordinate
+            int iy = (int) (ixy >>> 32); // extract y-coordinate
+            System.out.println("Point i " + i + ": (" + ix + ", " + iy + ")");
             for (int j = 0; j < N; j++) {
                 long jxy = coordinates[j];
-                int jx = (int) jxy;
-                int jy = (int) (jxy >>> 4);
-                int ds = (jx - ix) * (jy - iy);
-                proximity[i * N + j] = ((long) ds << 4) + (long) j;
+                // retrieve x2, y2 values (other pair of points)
+                int jx = (int) (jxy & 0xFFFFFFFFL);
+                int jy = (int) (jxy >>> 32);
+                // calculate R^2 (euclidean distance)
+                // (jx - ix) * (jx - ix) + (jy - iy) * (jy - iy)
+                int ds = (jx - ix) * (jx - ix) + (jy - iy) * (jy - iy);
+               // proximity[i * N + j] = ((long) ds << 32) + (long) j;
+                //
+                proximity[i * N + j] = ((long) ds << 32) | (j & 0xFFFFFFFFL);
+
+                System.out.println("Point j " + j + ": (" + jx + ", " + jy + ")");
+                System.out.println("Squared Distance: " + ds);
+                System.out.println("Proximity[" + (i * N + j) + "]: " + proximity[i * N + j]);
             }
+
+
             // sort by distance and then index
+            // i * N:
+            // ex) N = 5, i = 0 -> proximity[0...4] will be sorted
             Arrays.sort(proximity, i * N, (i + 1) * N);
+
         }
-        
         // debug check: print out the proximity matrix to see if correctly sorts.
-        
+        // Print proximity array for debugging
+        for (int i = 0; i < N; i++) {
+            System.out.println("Proximity for point " + i + ":");
+            for (int j = 0; j < N; j++) {
+                long value = proximity[i * N + j];
+                int distance = (int) (value >>> 32);
+                int index = (int) (value & 0xFFFFFFFFL);
+                System.out.println("  Distance: " + distance + ", Index: " + index);
+            }
+        }
         long answer = 0;
         /* your code here to calculate the answer*/
 
