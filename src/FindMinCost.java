@@ -18,29 +18,58 @@ public class FindMinCost {
 
         // ceiling division of a by 64
         private static int ce64(int a) {
+            // ex) a = 128
+            //    (128 + 63) / 64 + (64 % 64 == 0 ? 0 : 1)
+            //    (128 + 63) / 64 = 2
+            //    (64 % 64 == 0) = 0
+            //   2 + 0 (return 2)
+
+            // (a+63) -> to ensure division result goes to next whole number (round up chunks)
+            // (a+63) / 64 ->
+            // if (a % 64 == 0) result = 0
+             // else result = 1
+            // method calculates the number of 64-bit chunks needed to
             return (a + 63) / 64 + (a % 64 == 0 ? 0 : 1);
         }
 
         public BitSet(int n) {
+            // creating bit-set array
+            // n -> (each entry will represent our (x,y) set and distance
+            // n -> multiple of 64
+            // n = 128 (array of 2)
+            // longs = new long[2]
             longs = new long[ce64(n)];
         }
 
         public void set(int i) {
+            // [i/64] -> calculate index in longs array
+            // (1L << (i % 64)) -> calculate Bit position within array element
+            // ex) i = 70
+               // longs[70/64] = 1 (bit is in second long element)
+               // (70 % 64) -> bit at position 6 within second long element
             longs[i / 64] |= (1L << (i % 64));
         }
-
+        // clearing the given element i in the bit-set
         public void clear(int i) {
+            // [i/64] -> calculate index in longs array
+            // (1L << (i % 64)) -> calculate Bit position within array element
+            // ~ -> Bit Not to negate operator
             longs[i / 64] &= ~(1L << (i % 64));
         }
-
+        // preform XOR operation between 2 bit-sets to find # of differences
+        // each element in bit-set represents node (x,y) we will finding excluded/included elements in given
+        // R
         public void diff(BitSet bs) {
             assert bs.longs.length == longs.length;
+            // iterate through each element in bit-set to calculate bits
             for (int i = 0; i < longs.length; i++) {
                 longs[i] ^= bs.longs[i];
             }
         }
 
         public boolean ask(int i) {
+            // checking if bit at specific index set to 1
+            // checking for
             return (longs[i] & (1L << (i % 64))) != 0;
         }
 
@@ -83,6 +112,7 @@ public class FindMinCost {
     static class S {
         long[] proximity;
         long[] coordinates;
+        // points that have been visited (manages states of each tower)
         BitSet visited;
         int N;
 
@@ -121,8 +151,8 @@ public class FindMinCost {
         var N = Integer.parseInt(tokens[0]);
         // create 2D array points
         // components (if w inside coordinates):
-        //  x = low 4 bytes of w
-        //  y = high 4 bytes of w
+        //  x = low 4 bytes of w (32 bits)
+        //  y = high 4 bytes of w (32 bits)
         var coordinates = new long[N];
         // k = 1 -> start at line 1 to process each pair of points
         // Integer.parseInt(tokens[k]) -> provides us value of points in given line (converts string to int)
@@ -135,10 +165,8 @@ public class FindMinCost {
             int y = Integer.parseInt(tokens[k + 1]);
 //            System.out.println("y: " + y + " ");
             // must do bit shift of 32 bits to extract y-coordinate
-            // (x & 0xFFFFFFFFL)
-            // &: bitwise AND to extract lower 32 bits
-            // 0xFFFFFFFFL -> hexadecimal literal representing 32-bit mask
-            // L -> indicates long integer
+            // | -> using bit-wise OR to ensure no overlap between x and y coordinates
+            // ((long)) x -> cast to long to ensure 64 bits
             coordinates[i] = ((long) y << 32) | ((long) x);
         }
         System.out.println();
@@ -150,6 +178,7 @@ public class FindMinCost {
         for (int i = 0; i < N; i++) {
             // retrieve the x,y values stored in our array of points
             long ixy = coordinates[i];
+            // & 0xffffffL ->
             long ix = ixy & 0xfffffffL; // extract x-coordinate
             long iy = ixy >>> 32; // extract y-coordinate
 //            System.out.println("Point i " + i + ": (" + ix + ", " + iy + ")");
@@ -158,13 +187,21 @@ public class FindMinCost {
                 // retrieve x2, y2 values (other pair of points)
                 long jx = jxy & 0xfffffffL;
                 long jy = jxy >>> 32;
+                // (x1 - y1)
                 long dx = ix - jx;
+                // (y1 - y2)
                 long dy = iy - jy;
+                // calculate euclidean distance
                 long ds = (long) Math.sqrt(dx * dx + dy * dy);
+                // [i * N + j]
+                // (i * N): to calculate starting index of ith row
+                // + j: to provide column number
+                // (ds << 32) -> distance of (x,y) point stored in upper half
+                // j -> index stored in lower half (will be always positive)
                 proximity[i * N + j] = (ds << 32) | j;
-//                System.out.println("Point j " + j + ": (" + jx + ", " + jy + ")");
-//                System.out.println("Distance: " + ds);
-//                System.out.println("Proximity[" + (i * N + j) + "]: " + proximity[i * N + j]);
+               // System.out.println("Point j " + j + ": (" + jx + ", " + jy + ")");
+              //  System.out.println("Distance: " + ds);
+              //  System.out.println("Proximity[" + (i * N + j) + "]: " + proximity[i * N + j]);
             }
             // sort by distance and then index
             // i * N:
@@ -173,17 +210,20 @@ public class FindMinCost {
         }
         // debug check: print out the proximity matrix to see if correctly sorts.
         // Print proximity array for debugging
-//        for (int i = 0; i < N; i++) {
-//            System.out.println("Proximity for point " + i + ":");
-//            for (int j = 0; j < N; j++) {
-//                long value = proximity[i * N + j];
-//                int distance = (int) (value >>> 32);
-//                int index = (int) (value & 0xFFFFFFFFL);
-//                System.out.println("  Distance: " + distance + ", Index: " + index);
-//            }
-//        }
+       for (int i = 0; i < N; i++) {
+          System.out.println("Proximity for point " + i + ":");
+           for (int j = 0; j < N; j++) {
+                long value = proximity[i * N + j];
+                int distance = (int) (value >>> 32);
+                int index = (int) (value & 0xFFFFFFFFL);
+                System.out.println("  Distance: " + distance + ", Index: " + index + ", Proximity: " + value);
+            }
+        }
         /* your code here to calculate the answer*/
         // solution search
+        // N -> number of points (for bitSet)
+        // proximity -> sorted distances of (x,y) points
+        // coordinates -> contains (x,y) points
         S sol = new S(N, proximity, coordinates); // TODO: plug in all the arrays and stuff
         // two-phase exponential search
         long high = 128; // some good starting point
