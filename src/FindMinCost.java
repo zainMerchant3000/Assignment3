@@ -18,46 +18,25 @@ public class FindMinCost {
 
         // ceiling division of a by 64
         private static int ce64(int a) {
-            System.out.println("a: " + a);
-            // ex) a = 128
-            //    (128 + 63) / 64 + (64 % 64 == 0 ? 0 : 1)
-            //    (128 + 63) / 64 = 2
-            //    (64 % 64 == 0) = 0
-            //   2 + 0 (return 2)
-
-
-
-            // (a+63) -> to ensure division result goes to next whole number (round up chunks)
-            // (a+63) / 64 ->
-            // if (a % 64 == 0) result = 0
-             // else result = 1
-            // method calculates the number of 64-bit chunks needed
-           // return (a + 63) / 64;
-            return (a + 63) / 64 + (a % 64 == 0 ? 0 : 1);
+            return (a + 63) / 64;
         }
 
         public BitSet(int n) {
-            // creating bit-set array
-            // n -> (each entry will represent our (x,y) set and distance
-            // n -> multiple of 64
-            // n = 128 (array of 2)
-            // longs = new long[2]
             longs = new long[ce64(n)];
-            System.out.println("longs: " + Arrays.toString(longs));
-            System.out.println("size: " + longs.length);
         }
 
         public void set(int i) {
             // [i/64] -> calculate index in longs array
             // (1L << (i % 64)) -> calculate Bit position within array element
             // ex) i = 70
-               // longs[70/64] = 1 (bit is in second long element)
-               // (70 % 64) -> bit at position 6 within second long element
+            // longs[70/64] = 1 (bit is in second long element)
+            // (70 % 64) -> bit at position 6 within second long element
             // ex) i = 0
             // longs[0/64] = 0 (bit is in 0th long element)
             // (0 % 64) -> bit at position 0 within 0th long element
             longs[i / 64] |= (1L << (i % 64));
         }
+
         // clearing the given element i in the bit-set
         public void clear(int i) {
             // [i/64] -> calculate index in longs array
@@ -65,6 +44,7 @@ public class FindMinCost {
             // ~ -> Bit Not to negate operator
             longs[i / 64] &= ~(1L << (i % 64));
         }
+
         // preform XOR operation between 2 bit-sets to find # of differences
         // each element in bit-set represents node (x,y) we will finding excluded/included elements in given
         // R
@@ -79,18 +59,18 @@ public class FindMinCost {
         public boolean ask(int i) {
             // checking if bit at specific index set to 1
             // checking for
-            System.out.println("Asking for bit: " + i);
-            System.out.println("Array size: " + longs.length);
-            System.out.println("Accessing index: " + (i / 64) + ", bit: " + (i % 64));
+            //  System.out.println("Asking for bit: " + i);
+            //  System.out.println("Array size: " + longs.length);
+            //  System.out.println("Accessing index: " + (i / 64) + ", bit: " + (i % 64));
             if (i / 64 >= longs.length) {
                 throw new ArrayIndexOutOfBoundsException("Attempt to access out of bounds: " + i);
             }
-            return (longs[i/64] & (1L << (i % 64))) != 0;
+            return (longs[i / 64] & (1L << (i % 64))) != 0;
         }
 
         public void copyInto(BitSet bs) {
             assert bs.longs.length == longs.length;
-            System.arraycopy(bs.longs, 0, longs, 0, longs.length);
+            System.arraycopy(longs, 0, bs.longs, 0, longs.length);
         }
 
         public BitSet copy() {
@@ -139,98 +119,107 @@ public class FindMinCost {
         }
 
         // Given C = R^2 value, is the graph robust?
-        // checking if
-        boolean test(long c) {
+        // 00 [decimal 0] = not robust, not connected
+        // 01 [decimal 1] = not robust, but connected
+        // (10) = (robust but not connected): impossible, bug.
+        // 11 [decimal 3] = robust and connected
+        byte test(long previousC, long newC) {
             // R -> broadcast radius of tower
             // use floating point arithmetic
             // sqrt(C) = sqrt(R^2)
             // sqrt(C) = R
-            //
-            double R = Math.sqrt(c); // calculate current radius based on cost
-
-            // Step 1: check connectivity (when no Tower is excluded)
-             if(!(isConnected(-1,R))) {
-                return false;
-            }
-
-            // Step 2: check robustness
-            // for (int i = 0; i < N; i++) {
-            //    if(!isConnected(i,R)) {
-            //       return false;
-            //     }
-            // }
-
-
-            return false;
-        }
-        // method to check
-        boolean isConnected(int exclude, double R) {
-            BitSet visited = new BitSet(N); // 1) initialize the bit-set
-            // 2) figure out which tower to start with
-            int start;
-            if (exclude == 0) {
-                start = 1;
-            }
-            else {
-                start = 0;
-            }
-            // 3) Perform DFS with no exclusion:
-            dfs(start, exclude, R, visited);
-            // 4) Create BitSet to store our original visited nodes:
-            BitSet originalvisited = visited.copy();
-
-            // 5) preform DFS with excluded Tower:
-            visited = new BitSet(N);
-            dfs(start, exclude, R, visited);
-
-            //6) Compare our visited nodes before and after exclusion
-
-
-            // 2) must determine which tower to start with
-              // int start;
-            // if (exclude == 0) {
-            //}  start = 1;
-            // else { // otherwise
-            //}  start = 0;
-            // 3) will preform DFS or BFS to start from determined tower and visits all the towers in the
-            // given (R) radius which we determined in our binary search
-                 // dfs(start, exclude, R, visited);
-            // for (int i = 0; i < N; i++) {
-            //     if (i != exclude && !visited.ask(i)) {
-            //          return false
-            //     }
-            // }
-            // 4)
-            return false;
-        }
-
-        void dfs(int start, int exclude, double R, BitSet visited) {
-            //
-            Stack<Integer> stack = new Stack<>(); // create Stack data structure to manage nodes
-            stack.push(start); // 1) start DFS with given tower and mark as visited
-            while (!stack.isEmpty()) { // dfs finishes when stack empty (has visited everyone)
-                int node = stack.pop();
-                if (!visited.ask(node)) { // check if current
-                    visited.set(node); // mark all unvisited neighbors
+            double R = Math.sqrt(newC);
+            var old = visited.copy();
+            if (isDisconnected(-1, R)) return 0;
+            var d = old.copy();
+            d.diff(visited);
+            for (int i = 0; i < d.longs.length; i++) {
+                var l = d.longs[i];
+                var b = 1L;
+                for (int j = 0; j < 64; j++) {
+                    // check each vertex within the
+                    // difference bit set d.
+                    var v = i * 64 + j;
+                    if (v >= N) break;
+                    if ((l & b) == 0) continue;
+                    b <<= 1;
+                    if (isDisconnected(v, R)) return 1;
                 }
-                ///  TODO: longs[2] -> for n = 5
-                // cannot
-                for (int i = 0; i < N; i++) {
-                    if (i != exclude && !visited.ask(i)) {
-                        long value = proximity[node * N + i];
-                        double distance = Math.sqrt(value >>> 32);
-                        //double distance = flp2(value);
-                        if (distance <= R) {
-                            stack.push(node);
+            }
+            visited = old; // only keep visited from last lower bound.
+            // 11 in binary -> robust (bit 1) and connected (bit 0).
+            return 3;
+        }
+
+        // method to check if tower is connected when removing a tower
+        boolean isDisconnected(int exclude, double R) {
+            visited = new BitSet(N);
+            dfs(exclude, R, visited);
+            int bc = 0;
+            for (int i = 0; i < visited.longs.length; i++) {
+                bc += Integer.bitCount((int) (visited.longs[i]));
+                bc += Integer.bitCount((int) (visited.longs[i] >>> 32));
+            }
+            if (exclude >= 0) return bc < N - 1;
+            else return bc < N;
+        }
+
+        void dfs(int exclude, double R, BitSet visited) {
+//            System.out.println("Starting DFS from tower: " + 0);
+            Stack<Integer> stack = new Stack<>(); // create Stack data structure to manage nodes
+            int start = exclude == 0 ? 1 : 0;
+            stack.push(start); // 1) push the start tower to the stack
+            visited.set(start); // 2) mark start tower as visited
+//            System.out.println("initial Stack: " + stack);
+            while (!stack.isEmpty()) { // dfs finishes when stack empty (has visited everyone within R)
+                int current = stack.pop(); // pop tower from the stack
+//                System.out.println("Popped " + current + " from stack");
+                // Explore all neighbors:
+                // the closest neighbor is always myself. exclude it.
+                for (int i = 1; i < N; i++) {
+                    var px = proximity[current * N + i];
+                    var n = (int) px; // low 32 bits -> index of neighbor (n)
+                    // skip excluded tower and ones already visited
+                    if (n != exclude && !visited.ask(n)) {
+                        var distance0 = px >>> 32;
+                        double distance;
+                        if (distance0 == (long) R) {
+                            // we don't store enough precision in
+                            // 'proximity', so if integer parts same,
+                            // compute real distance.
+                            var cxy = coordinates[current];
+                            var nxy = coordinates[n];
+                            var ny = nxy >>> 32;
+                            var nx = nxy & 0xffffffffL;
+                            var cy = cxy >>> 32;
+                            var cx = cxy & 0xffffffffL;
+                            var dx = cx - nx;
+                            var dy = cy - ny;
+                            distance = Math.sqrt(dx * dx + dy * dy);
+                        } else {
+                            distance = distance0;
                         }
-                        else {
+//                        System.out.println("Checking neighbor tower " + n + " from tower " + current);
+//                        System.out.println("Distance from " + current + " to " + n + ": " + distance);
+                        //only push neighbors within the defined Radius
+                        if (distance <= R) {
+                            stack.push(n);
+                            visited.set(n);
+//                            System.out.println("Pushing tower: " + n + " onto the stack");
+                        } else {
                             break; // can terminate early for towers outside the radius (because sorted)
                         }
                     }
                 }
+                // Print the state of the stack after exploring all neighbors
+//                System.out.println("Stack after exploring neighbors of tower " + current + ": " + stack);
             }
+//            System.out.println("DFS complete. Final visited towers: ");
+            // Print final visited towers
+//            for (int i = 0; i < N; i++) {
+//                System.out.println("Tower " + i + ": " + (visited.ask(i) ? "Visited" : "Not Visited"));
+//            }
         }
-
     }
 
     public static void main(String[] args) throws IOException {
@@ -303,9 +292,9 @@ public class FindMinCost {
                 // (ds << 32) -> distance of (x,y) point stored in upper half
                 // j -> index stored in lower half (will be always positive)
                 proximity[i * N + j] = (ds << 32) | j;
-               // System.out.println("Point j " + j + ": (" + jx + ", " + jy + ")");
-              //  System.out.println("Distance: " + ds);
-              //  System.out.println("Proximity[" + (i * N + j) + "]: " + proximity[i * N + j]);
+                // System.out.println("Point j " + j + ": (" + jx + ", " + jy + ")");
+                //  System.out.println("Distance: " + ds);
+                //  System.out.println("Proximity[" + (i * N + j) + "]: " + proximity[i * N + j]);
             }
             // sort by distance and then index
             // i * N:
@@ -314,6 +303,7 @@ public class FindMinCost {
         }
         // debug check: print out the proximity matrix to see if correctly sorts.
         // Print proximity array for debugging
+        /*
        for (int i = 0; i < N; i++) {
           System.out.println("Proximity for point " + i + ":");
            for (int j = 0; j < N; j++) {
@@ -323,12 +313,13 @@ public class FindMinCost {
                 System.out.println("  Distance: " + distance + ", Index: " + index + ", Proximity: " + value);
             }
         }
+        */
         /* your code here to calculate the answer*/
         // solution search
         // N -> number of points/Towers (for bitSet)
         // proximity -> sorted distances of (x,y) points
         // coordinates -> contains (x,y) points
-        S sol = new S(N, proximity, coordinates); // TODO: plug in all the arrays and stuff
+        S sol = new S(N, proximity, coordinates);
         // two-phase exponential search
         long high = 128; // some good starting point
         long low = 0;
@@ -336,18 +327,31 @@ public class FindMinCost {
         // low is excluded and high is included, or else
         // range is length 1.
         while (high >= low) {
-            if (!sol.test(high)) { // check if current value is sufficient to meet communication requirements
+            // usage: sol.test(prev, new)
+            if ((sol.test(low, high) & 2) == 0) { // is NOT robust?
                 low = high;
                 high *= 2;
-            } else break;
+            } else {
+                break;
+            }
         }
         // phase 2: refine the range and find minimum cost C
+        long prev = high;
         while (low < high) {
             long m = (low + high) / 2; // calculate mid-point
-            if (sol.test(m)) high = m; //
-            else low = m;
+            if ((sol.test(prev, m) & 2) == 2) { // is robust? -> go down
+                prev = m;
+                high = m;
+            } else { // is not robust? -> go up
+                prev = m + 1;
+                low = m + 1;
+            }
         }
         // an answer WILL exist and the loop above WILL terminate.
+        //  proof that low == high:
+        //      1. we can never make low > high
+        //      2. we know that NOT (low < high).
+        //      3. by elimination, low == high.
         assert low == high;
         System.out.println(low);
     }
