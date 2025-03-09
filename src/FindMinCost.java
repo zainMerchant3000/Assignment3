@@ -18,11 +18,14 @@ public class FindMinCost {
 
         // ceiling division of a by 64
         private static int ce64(int a) {
+            System.out.println("a: " + a);
             // ex) a = 128
             //    (128 + 63) / 64 + (64 % 64 == 0 ? 0 : 1)
             //    (128 + 63) / 64 = 2
             //    (64 % 64 == 0) = 0
             //   2 + 0 (return 2)
+
+            
 
             // (a+63) -> to ensure division result goes to next whole number (round up chunks)
             // (a+63) / 64 ->
@@ -124,9 +127,97 @@ public class FindMinCost {
         }
 
         // Given C = R^2 value, is the graph robust?
+        // checking if
         boolean test(long c) {
+            // R -> broadcast radius of tower
+            // use floating point arithmetic
+            // sqrt(C) = sqrt(R^2)
+            // sqrt(C) = R
+            //
+            double R = Math.sqrt(c); // calculate current radius based on cost
+
+            // Step 1: check connectivity (when no Tower is excluded)
+             if(!(isConnected(-1,R))) {
+                return false;
+            }
+
+            // Step 2: check robustness
+            // for (int i = 0; i < N; i++) {
+            //    if(!isConnected(i,R)) {
+            //       return false;
+            //     }
+            // }
+
+
             return false;
         }
+        // method to check
+        boolean isConnected(int exclude, double R) {
+            BitSet visited = new BitSet(N); // 1) initialize the bit-set
+            // 2) figure out which tower to start with
+            int start;
+            if (exclude == 0) {
+                start = 1;
+            }
+            else {
+                start = 0;
+            }
+            // 3) Perform DFS with no exclusion:
+            dfs(start, exclude, R, visited);
+            // 4) Create BitSet to store our original visited nodes:
+            BitSet originalvisited = visited.copy();
+
+            // 5) preform DFS with excluded Tower:
+            visited = new BitSet(N);
+            dfs(start, exclude, R, visited);
+
+            //6) Compare our visited nodes before and after exclusion
+
+
+            // 2) must determine which tower to start with
+              // int start;
+            // if (exclude == 0) {
+            //}  start = 1;
+            // else { // otherwise
+            //}  start = 0;
+            // 3) will preform DFS or BFS to start from determined tower and visits all the towers in the
+            // given (R) radius which we determined in our binary search
+                 // dfs(start, exclude, R, visited);
+            // for (int i = 0; i < N; i++) {
+            //     if (i != exclude && !visited.ask(i)) {
+            //          return false
+            //     }
+            // }
+            // 4)
+            return false;
+        }
+
+        void dfs(int start, int exclude, double R, BitSet visited) {
+            //
+            Stack<Integer> stack = new Stack<>(); // create Stack data structure to manage nodes
+            stack.push(start); // 1) start DFS with given tower and mark as visited
+            while (!stack.isEmpty()) { // dfs finishes when stack empty (has visited everyone)
+                int node = stack.pop();
+                if (!visited.ask(node)) { // check if current
+                    visited.set(node); // mark all unvisited neighbors
+                }
+                //
+                for (int i = 0; i < N; i++) {
+                    if (i != exclude && !visited.ask(i)) {
+                        long value = proximity[node * N + i];
+                        double distance = Math.sqrt(value >>> 32);
+                        //double distance = flp2(value);
+                        if (distance <= R) {
+                            stack.push(node);
+                        }
+                        else {
+                            break; // can terminate early for towers outside the radius (because sorted)
+                        }
+                    }
+                }
+            }
+        }
+
     }
 
     public static void main(String[] args) throws IOException {
@@ -221,7 +312,7 @@ public class FindMinCost {
         }
         /* your code here to calculate the answer*/
         // solution search
-        // N -> number of points (for bitSet)
+        // N -> number of points/Towers (for bitSet)
         // proximity -> sorted distances of (x,y) points
         // coordinates -> contains (x,y) points
         S sol = new S(N, proximity, coordinates); // TODO: plug in all the arrays and stuff
@@ -232,15 +323,15 @@ public class FindMinCost {
         // low is excluded and high is included, or else
         // range is length 1.
         while (high >= low) {
-            if (!sol.test(high)) {
+            if (!sol.test(high)) { // check if current value is sufficient to meet communication requirements
                 low = high;
                 high *= 2;
             } else break;
         }
-        // phase 2: refine the range
+        // phase 2: refine the range and find minimum cost C
         while (low < high) {
-            long m = (low + high) / 2;
-            if (sol.test(m)) high = m;
+            long m = (low + high) / 2; // calculate mid-point
+            if (sol.test(m)) high = m; //
             else low = m;
         }
         // an answer WILL exist and the loop above WILL terminate.
