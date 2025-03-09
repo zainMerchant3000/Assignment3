@@ -25,13 +25,14 @@ public class FindMinCost {
             //    (64 % 64 == 0) = 0
             //   2 + 0 (return 2)
 
-            
+
 
             // (a+63) -> to ensure division result goes to next whole number (round up chunks)
             // (a+63) / 64 ->
             // if (a % 64 == 0) result = 0
              // else result = 1
-            // method calculates the number of 64-bit chunks needed to
+            // method calculates the number of 64-bit chunks needed
+           // return (a + 63) / 64;
             return (a + 63) / 64 + (a % 64 == 0 ? 0 : 1);
         }
 
@@ -42,6 +43,8 @@ public class FindMinCost {
             // n = 128 (array of 2)
             // longs = new long[2]
             longs = new long[ce64(n)];
+            System.out.println("longs: " + Arrays.toString(longs));
+            System.out.println("size: " + longs.length);
         }
 
         public void set(int i) {
@@ -50,6 +53,9 @@ public class FindMinCost {
             // ex) i = 70
                // longs[70/64] = 1 (bit is in second long element)
                // (70 % 64) -> bit at position 6 within second long element
+            // ex) i = 0
+            // longs[0/64] = 0 (bit is in 0th long element)
+            // (0 % 64) -> bit at position 0 within 0th long element
             longs[i / 64] |= (1L << (i % 64));
         }
         // clearing the given element i in the bit-set
@@ -73,7 +79,13 @@ public class FindMinCost {
         public boolean ask(int i) {
             // checking if bit at specific index set to 1
             // checking for
-            return (longs[i] & (1L << (i % 64))) != 0;
+            System.out.println("Asking for bit: " + i);
+            System.out.println("Array size: " + longs.length);
+            System.out.println("Accessing index: " + (i / 64) + ", bit: " + (i % 64));
+            if (i / 64 >= longs.length) {
+                throw new ArrayIndexOutOfBoundsException("Attempt to access out of bounds: " + i);
+            }
+            return (longs[i/64] & (1L << (i % 64))) != 0;
         }
 
         public void copyInto(BitSet bs) {
@@ -201,7 +213,8 @@ public class FindMinCost {
                 if (!visited.ask(node)) { // check if current
                     visited.set(node); // mark all unvisited neighbors
                 }
-                //
+                ///  TODO: longs[2] -> for n = 5
+                // cannot
                 for (int i = 0; i < N; i++) {
                     if (i != exclude && !visited.ask(i)) {
                         long value = proximity[node * N + i];
