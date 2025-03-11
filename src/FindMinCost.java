@@ -83,7 +83,7 @@ public class FindMinCost {
         public S(int n, long[] prx, long[] coords) {
             proximity = prx;
             coordinates = coords;
-            stack = new short[n];
+            stack = new short[n * n];
             visited = new BitSet(n);
             robustVs = new BitSet(n);
             robustVs2 = new BitSet(n);
@@ -93,7 +93,6 @@ public class FindMinCost {
         // Given C = R^2 value, robust or not?
         boolean test(long c) {
             double R = Math.sqrt(c);
-            System.out.println("Current radius: " + R);
             // check if graph is connected
             // if this check fails, the graph is not robust
             // because it's not connected. the binary search
@@ -110,11 +109,14 @@ public class FindMinCost {
                     // check each vertex within the
                     // difference bit set d.
                     var v = i * 64 + j;
+                    // checking out-of bounds
                     if (v >= N) break;
+                    // checking if
                     if ((l & b) != 0) {
                         b <<= 1;
                         continue;
                     }
+                    //
                     b <<= 1;
                     if (!isDisconnected(v, R)) {
                         // v is not an articulation point any more
@@ -143,84 +145,67 @@ public class FindMinCost {
             // visited -> tracking which nodes have been visited during DFS
             int bc = dfs((short) exclude, R, visited);
             // checking whether specific tower has been excluded
+            // check if vertex should be excluded
             if (exclude >= 0) return bc < N - 1;
+            // no vertex excluded
             else return bc < N;
         }
 
         int dfs(short exclude, double R, BitSet visited) {
-            int nvisited = 1;
+            int nvisited = 0;
             int stacklen = 1;
             // node where DFS will begin
             short start = (short) (exclude == 0 ? 1 : 0);
             // place starting node in DFS stack
             stack[0] = start;
-
-            System.out.println("Starting DFS from node: " + start);
             while (stacklen > 0) {
                 // current -> node being currently processed
                 // pop off from stack
                 short current = stack[--stacklen];
-                System.out.println("Processing node : " + current);
                 // current == exclude -> is the node being excluded (skip it)
                 // visited.ask(current) -> check if current node been visited
                 // skip if current node is excluded or already visited
-                if (current == exclude || visited.ask(current)) {
-                    System.out.println("Node " + current + " is either excluded or already visited. Skipping.");
-                    continue;
-                }
+                if (current == exclude || visited.ask(current)) continue;
                 // mark current node as visited
                 visited.set(current);
-                System.out.println("Marked node: " + current + " as visited");
+                nvisited++;
                 // binary search on neighbors to find closest out of
                 // range neighbor (or prove it does not exist).
                 short low = 1;
                 // high -> total number of nodes
                 short high = (short) N;
-                System.out.println("Binary search on neighbors of node " + current);
-                //
                 while (low < high) {
                     // calculate midpoint of range
                     var m = (short) ((low + high) / 2);
-                    System.out.println("Checking node " + m + " in binary search. Range: [" + low + ", " + high + "]");
                     // check if m within range of current
                     if (inRange(current, m, R)) {
                         // update low to higher half of current search range
                         low = (short) (m + 1);
-                        System.out.println("Node " + m + " is within range, updating low to " + low);
                     } else {
                         high = m;
-                        System.out.println("Node " + m + " is out of range, updating high to " + high);
                     }
                 }
                 if (high == N) {
-                    System.out.println("All nodes are within range from node " + current);
                     return N;
                 }
                 //process each neighbor in the range
                 for (short i = 1; i < low; i++) {
-                    short n = (short) proximity[current * N + i];
-                    System.out.println("Checking neighbor node: " + n + " (proximity at index " + (current * N + i) + ")");
-                    if (visited.ask(n)) {
-                        System.out.println("Neighbor node " + n + " has already been visited. Skipping.");
-                        continue;
-                    }
-                    visited.set(n);
-                    System.out.println("Marked neighbor node " + n + " as visited.");
+                    var n = (short) proximity[current * N + i];
+                    if (visited.ask(n)) continue;
                     stack[stacklen++] = n;
-                    System.out.println("added node: " + n + " to stack. ");
-                    nvisited++;
-                    System.out.println("Increased nvisited to : " + nvisited);
                 }
             }
-            System.out.println("DFS completed. Total visited nodes: " + nvisited);
             return nvisited;
         }
+
         // checks if given node is within the range
         boolean inRange(short c, short i, double r) {
             var px = proximity[c * N + i];
             var n = (short) px;
             var idist = (int) (px >>> 32);
+            // check that distance is within Radius
             if (idist < (int) r) return true;
+            // distance not in radius
             if (idist > r) return false;
             // we don't store enough precision in
             // 'proximity', so if integer parts same,
@@ -321,36 +306,22 @@ public class FindMinCost {
         // range is length 1.
         // high >= low
         while (high >= low) {
-            System.out.println("Phase 1: - Searching for a valid range: ");
-            System.out.println("Low: " + low + " High: " + high);
             if (sol.test(high)) { // is robust?
-                System.out.println("Range [" + low + ", " + high + "] is robust. Stopping expansion."); // Debug: when range is robust
                 break;
             } else {
-                System.out.println("Range [" + low + ", " + high + "] is NOT robust. Expanding range..."); // Debug: when range is not robust
                 low = high;
                 high *= 2;
-                System.out.println("New range after expansion - Low: " + low + ", High: " + high); // Debug: print updated range
             }
         }
         // phase 2: refine the range and find minimum cost C
-         System.out.println("Phase 2: - Refining the range to find minimum cost C: ");
+        System.out.println("Phase 2: - Refining the range to find minimum cost C from C = " + high);
         while (low < high) {
             long m = (low & high) + ((low ^ high) >> 1); // signed midpoint without overflow
-            System.out.println("Low: " + low + ", High: " + high + ", Mid: " + m); // Debug: print current range and midpoint
             if (sol.test(m)) { // is robust? -> go down
-//                System.out.println("Range [" + prev + ", " + m + "] is robust. Reducing the range..."); // Debug: when range is robust
-                high = m; // Narrow the range to lower half
-                System.out.println("New range after narrowing - Low: " + low + ", High: " + high); // Debug: print updated range
+                high = m;
             } else { // is not robust? -> go up
-                //System.out.println("Range [" + prev + ", " + m + "] is NOT robust. Expanding the range..."); // Debug: when range is not robust
-                low = m + 1; // move lower bound up
-                 System.out.println("New range after expanding - Low: " + low + ", High: " + high); // Debug: print updated range
-            }
-
-            if (low == high) {
-                System.out.println("Found the solution: " + low);
-                break;
+                System.out.println("at m = " + m + ", we'll be going up");
+                low = m + 1;
             }
         }
 
