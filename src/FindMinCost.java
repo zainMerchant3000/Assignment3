@@ -32,19 +32,6 @@ public class FindMinCost {
             longs[i / 64] |= (1L << (i % 64));
         }
 
-        public void clear(int i) {
-            longs[i / 64] &= ~(1L << (i % 64));
-        }
-
-        public int countSet() {
-            int bc = 0;
-            for (int i = 0; i < 64; i++) {
-                bc += Integer.bitCount((int) longs[i]);
-                bc += Integer.bitCount((int) (longs[i] >>> 32));
-            }
-            return bc;
-        }
-
         public void clearAll() {
             Arrays.fill(longs, 0);
         }
@@ -63,16 +50,12 @@ public class FindMinCost {
         public boolean ask(int i) {
             return (longs[i / 64] & (1L << (i % 64))) != 0;
         }
-
-        public void copyInto(BitSet bs) {
-            assert bs.longs.length == longs.length;
-            System.arraycopy(longs, 0, bs.longs, 0, longs.length);
-        }
     }
 
     // Stateful solution search
     static class S {
-        final long[] proximity;
+        final long[] sqdists;
+        final short[] proximity;
         final long[] coordinates;
         final short[] stack;
 
@@ -80,8 +63,9 @@ public class FindMinCost {
         final int N;
         int lastLowRobustCount = 0;
 
-        public S(int n, long[] prx, long[] coords) {
-            proximity = prx;
+        public S(int n, long[] dists, short[] prox, long[] coords) {
+            sqdists = dists;
+            proximity = prox;
             coordinates = coords;
             stack = new short[n * n];
             visited = new BitSet(n);
@@ -90,15 +74,14 @@ public class FindMinCost {
             N = n;
         }
 
-        // Given C = R^2 value, robust or not?
-        boolean test(long c) {
-            double R = Math.sqrt(c);
+        // given radius (given by squared radius), robust?
+        boolean test(long sqr) {
             // check if graph is connected
             // if this check fails, the graph is not robust
             // because it's not connected. the binary search
             // will increase the low number, so let 'visited'
             // be mutated (it always tracks the state of the last low update).
-            if (isDisconnected(-1, R)) return false;
+            if (isDisconnected(-1, sqr)) return false;
             // it's connected, so is it robust?
             robustVs2.clearAll();
             int robustCount2 = 0;
@@ -118,7 +101,7 @@ public class FindMinCost {
                     }
                     //
                     b <<= 1;
-                    if (!isDisconnected(v, R)) {
+                    if (!isDisconnected(v, sqr)) {
                         // v is not an articulation point any more
                         // since last low bound
                         robustVs2.set(v);
@@ -138,30 +121,24 @@ public class FindMinCost {
         }
 
         // method to check if tower is connected when removing a tower
-        boolean isDisconnected(int exclude, double R) {
-            //1) clear all visited bits to ensure DFS has clean state
+        boolean isDisconnected(int exclude, long sqr) {
             visited.clearAll();
-            // exclude -> tower to exclude from search
-            // visited -> tracking which nodes have been visited during DFS
-            int bc = dfs((short) exclude, R, visited);
-            // checking whether specific tower has been excluded
-            // check if vertex should be excluded
+            int bc = dfs((short) exclude, sqr, visited);
             if (exclude >= 0) return bc < N - 1;
-            // no vertex excluded
             else return bc < N;
         }
 
-        int dfs(short exclude, double R, BitSet visited) {
+        int dfs(short exclude, long sqr, BitSet visited) {
             int nvisited = 0;
             int stacklen = 1;
             // node where DFS will begin
-            short start = (short) (exclude == 0 ? 1 : 0);
+            var start = (short) (exclude == 0 ? 1 : 0);
             // place starting node in DFS stack
             stack[0] = start;
             while (stacklen > 0) {
                 // current -> node being currently processed
                 // pop off from stack
-                short current = stack[--stacklen];
+                var current = stack[--stacklen];
                 // current == exclude -> is the node being excluded (skip it)
                 // visited.ask(current) -> check if current node been visited
                 // skip if current node is excluded or already visited
@@ -175,22 +152,14 @@ public class FindMinCost {
                 // high -> total number of nodes
                 short high = (short) N;
                 while (low < high) {
-                    // calculate midpoint of range
                     var m = (short) ((low + high) / 2);
-                    // check if m within range of current
-                    if (inRange(current, m, R)) {
-                        // update low to higher half of current search range
-                        low = (short) (m + 1);
-                    } else {
-                        high = m;
-                    }
+                    if (inRange(current, m, sqr)) low = (short) (m + 1);
+                    else high = m;
                 }
-                if (high == N) {
-                    return N;
-                }
-                //process each neighbor in the range
+                if (high == N) return N;
+                // process each neighbor in the range
                 for (short i = 1; i < low; i++) {
-                    var n = (short) proximity[current * N + i];
+                    var n = proximity[current * N + i];
                     if (visited.ask(n)) continue;
                     stack[stacklen++] = n;
                 }
@@ -199,26 +168,9 @@ public class FindMinCost {
         }
 
         // checks if given node is within the range
-        boolean inRange(short c, short i, double r) {
-            var px = proximity[c * N + i];
-            var n = (short) px;
-            var idist = (int) (px >>> 32);
-            // check that distance is within Radius
-            if (idist < (int) r) return true;
-            // distance not in radius
-            if (idist > r) return false;
-            // we don't store enough precision in
-            // 'proximity', so if integer parts same,
-            // compute real distance.
-            var cxy = coordinates[c];
-            var nxy = coordinates[n];
-            var ny = nxy >>> 32;
-            var nx = nxy & 0xffffffffL;
-            var cy = cxy >>> 32;
-            var cx = cxy & 0xffffffffL;
-            var dx = cx - nx;
-            var dy = cy - ny;
-            return Math.sqrt(dx * dx + dy * dy) <= r;
+        boolean inRange(short c, short i, long sqr) {
+            var n = proximity[c * N + i];
+            return sqdists[c * N + n] <= sqr;
         }
     }
 
@@ -229,10 +181,7 @@ public class FindMinCost {
         // store each line in file
         var line = "";
         //reading each line from file
-        while ((line = BufferedReader.readLine()) != null) {
-            //appending lines
-            build.append(line).append(" ");
-        }
+        while ((line = BufferedReader.readLine()) != null) build.append(line).append(" ");
         BufferedReader.close();
         //storing input as string of tokens
         // ex ["5", "0", "3", "2","2","1","1","3","0","4","4"]
@@ -249,7 +198,6 @@ public class FindMinCost {
         var coordinates = new long[N];
         // k = 1 -> start at line 1 to process each pair of points
         // Integer.parseInt(tokens[k]) -> provides us value of points in given line (converts string to int)
-
         for (int i = 0, k = 1; i < N; i++, k += 2) {
             // retrieve x-coordinate
             int x = Integer.parseInt(tokens[k]);
@@ -261,10 +209,10 @@ public class FindMinCost {
             coordinates[i] = ((long) y << 32) | ((long) x);
         }
         // indexing: row * N + column
-        // if w is an element of proximity:
-        //  squared distance: high 4 bytes
-        //  index of the other point: low 4 bytes
-        var proximity = new long[N * N];
+        var sqdists = new long[N * N];
+        var proximity = new short[N * N];
+        var prefilled = new short[N];
+        for (int i = 0; i < N; i++) prefilled[i]=(short)i;
         for (int i = 0; i < N; i++) {
             // retrieve the x,y values stored in our array of points
             long ixy = coordinates[i];
@@ -275,29 +223,29 @@ public class FindMinCost {
                 // retrieve x2, y2 values (other pair of points)
                 long jx = jxy & 0xfffffffL;
                 long jy = jxy >>> 32;
-                // (x1 - y1)
                 long dx = ix - jx;
-                // (y1 - y2)
                 long dy = iy - jy;
-                // calculate euclidean distance
-                long ds = (long) Math.sqrt(dx * dx + dy * dy);
-                // [i * N + j]
-                // (i * N): to calculate starting index of ith row
-                // + j: to provide column number
-                // (ds << 32) -> distance of (x,y) point stored in upper half
-                // j -> index stored in lower half (will be always positive)
-                proximity[i * N + j] = (ds << 32) | j;
+                sqdists[i * N + j] = dx * dx + dy * dy;
             }
-            // sort by distance and then index
-            // i * N:
-            // ex) N = 5, i = 0 -> proximity[0...4] will be sorted
-            Arrays.sort(proximity, i * N, (i + 1) * N);
+            // fill up the proximity row
+            System.arraycopy(prefilled, 0, proximity, i * N, N);
+            // insertion sort
+            for (int j = 1; j < N; j++) {
+                var offset = i * N;
+                var x = proximity[offset + j];
+                var k = j - 1;
+                while (k >= 0 && sqdists[offset + proximity[offset + k]] > sqdists[offset + x]) {
+                    proximity[offset + k + 1] = proximity[offset + k];
+                    k--;
+                }
+                proximity[offset + k + 1] = x;
+            }
         }
         // solution search
         // N -> number of points/Towers (for bitSet)
         // proximity -> sorted distances of (x,y) points
         // coordinates -> contains (x,y) points
-        S sol = new S(N, proximity, coordinates);
+        S sol = new S(N, sqdists, proximity, coordinates);
         // two-phase exponential search
         long high = 128; // some good starting point
         long low = 0;
