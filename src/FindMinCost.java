@@ -12,6 +12,46 @@ import java.util.*;
 */
 
 public class FindMinCost {
+
+    public static void quickSort(short[] arr, int low, int high, long[] sqdists, int offset) {
+        if (low < high) {
+            // partition the array
+            int pi = partition(arr, low, high, sqdists, offset);
+
+            // Recursively sort the two subarrays:
+            quickSort(arr, low, pi - 1, sqdists, offset); // left subarray
+            quickSort(arr, pi + 1, high, sqdists, offset); // right subarray
+        }
+    }
+
+    public static int partition(short[]arr, int low, int high, long[] sqdists, int offset) {
+        // choose the pivot:
+        int pivot = arr[high];
+        // Pointer to smaller element
+        int i = low - 1;
+
+        // Traverse the array and partition:
+        for (int j = low; j < high; j++) {
+            // if current element smaller than pivot swap:
+            if(sqdists[offset + arr[j]] < sqdists[offset + pivot]) {
+                i++;
+                // swap arr[i] and arr[j]
+                swap(arr, i, j);
+
+            }
+        }
+        // Place the pivot element in the correct position
+        swap(arr, i + 1, high);
+        return i + 1;  // Return the index of the pivot
+
+    }
+    // Function to swap two elements
+    private static void swap(short[] arr, int i, int j) {
+        short temp = arr[i];
+        arr[i] = arr[j];
+        arr[j] = temp;
+    }
+
     static class BitSet {
         public long[] longs;
 
@@ -212,6 +252,7 @@ public class FindMinCost {
         var sqdists = new long[N * N];
         var proximity = new short[N * N];
         var prefilled = new short[N];
+        // populating list of indices
         for (int i = 0; i < N; i++) prefilled[i]=(short)i;
         for (int i = 0; i < N; i++) {
             // retrieve the x,y values stored in our array of points
@@ -227,11 +268,22 @@ public class FindMinCost {
                 long dy = iy - jy;
                 sqdists[i * N + j] = dx * dx + dy * dy;
             }
+
+            /*
             // fill up the proximity row
+            System.arraycopy(prefilled, 0, proximity, i * N, N);
+            // Quick-Sort implementation:
+            quickSort(proximity, i * N, (i+1) * N - 1, sqdists, i * N);
+
+             */
+
+
             System.arraycopy(prefilled, 0, proximity, i * N, N);
             // insertion sort
             for (int j = 1; j < N; j++) {
+                // calculate starting index of of ith row in proximity array
                 var offset = i * N;
+                // stores the value of the jth element (point being considered for insertion)
                 var x = proximity[offset + j];
                 var k = j - 1;
                 while (k >= 0 && sqdists[offset + proximity[offset + k]] > sqdists[offset + x]) {
@@ -240,7 +292,13 @@ public class FindMinCost {
                 }
                 proximity[offset + k + 1] = x;
             }
+
         }
+
+
+
+
+
         // solution search
         // N -> number of points/Towers (for bitSet)
         // proximity -> sorted distances of (x,y) points
