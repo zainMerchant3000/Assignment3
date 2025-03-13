@@ -2,7 +2,9 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.*;
-
+///  Zain-Abbas Merchant
+/// 3/12/2025
+/// CSPC 4100 Assignment 3
 /*
  Test your code with the provided test cases in \tests
  The command should look like:
@@ -109,13 +111,16 @@ public class FindMinCost {
                 if (current == (short) -1 || visited.ask(current)) continue;
                 visited.set(current);
                 nvisited++;
+                // binary search to find reachable points
                 short low = 1, high = (short) N;
                 while (low < high) {
                     var m = (short) ((low + high) / 2);
                     if (inRange(current, m, sqr)) low = (short) (m + 1);
                     else high = m;
                 }
+                // all points are reachable (return number of points)
                 if (low == N) return N;
+                //visit each neighbor
                 for (int i = 1; i < low; i++) {
                     var n = proximity[current * N + i];
                     if (visited.ask(n)) continue;
@@ -125,37 +130,46 @@ public class FindMinCost {
             return nvisited;
         }
 
+        // check that points are reachable (within radius)
         boolean inRange(short c, short i, long sqr) {
             return sqdists[c * N + proximity[c * N + i]] <= sqr;
         }
-
+        //checking for articulation points
         boolean cutpointExists(long sqr) {
+
             parents[0] = -1;
             visited.clearAll();
             return cutpointExistsGo((short) 0, (short) 0, sqr);
         }
 
         boolean cutpointExistsGo(short c, short d, long sqr) {
+            // d -> distance from root (depth)
+            // c -> current node
             visited.set(c);
             depth[c] = d;
-            lowpoints[c] = d;
+            lowpoints[c] = d; // storing lowest depth that can be reached from c
             var cut = false;
+            // binary search to find reachable nodes
             short children = 0, low = 1, high = (short) N;
             while (low < high) {
                 var m = (short) ((low + high) / 2);
                 if (inRange(c, m, sqr)) low = (short) (m + 1);
                 else high = m;
             }
+            // find neighbors of c (determined by binary search)
             for (var i = 1; i < low; i++) {
                 var n = proximity[c * N + i];
+                // check if already visited
                 if (!visited.ask(n)) {
                     parents[n] = c;
+                    // recursively explore our subtree at n
                     if (cutpointExistsGo(n, (short) (d + 1), sqr)) return true;
                     children++;
                     if (lowpoints[n] >= depth[c]) cut = true;
                     lowpoints[c] = (short) Math.min(lowpoints[c], lowpoints[n]);
                 } else if (n != parents[c]) lowpoints[c] = (short) Math.min(lowpoints[c], depth[n]);
             }
+            // checking if c is cutpoint
             return (parents[c] != -1 && cut) || (parents[c] == -1 && children > 1);
         }
     }
